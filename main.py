@@ -2,6 +2,9 @@ import customtkinter as ctk
 import pyautogui
 import json
 import CTkMessagebox as ctkmsg
+import os
+import keyboard
+
 
 pallete = {
     "1": "#22223B",
@@ -154,21 +157,35 @@ searchesLeftIndicator = ctk.CTkLabel(root,
 
 
 def perform_search(current, total):
+    global state
     if current < total:
         searchesLeftIndicator.configure(text=f"Searches left: {total - current}")
         pyautogui.typewrite(str(current + int(customStartPointVariable.get())) + " ")
         pyautogui.press("enter")
+        if keyboard.is_pressed('space') and state == "Searching":
+            ctkmsg.CTkMessagebox(message="Searches stopped!", icon="warning")
+            state = "idle"
+            startButton.configure(state="normal")
+            searches.configure(state="normal")
+            startButton.configure(text="START")
+            timeToWaitBeforeStart.configure(state="normal")
+            timeToLoadSiteInput.configure(state="normal")
+            customStartPoint.configure(state="normal")
+            searchesLeftIndicator.configure(text=f"Searches left: {str(int(searchesTextVariable.get()) - int(searchesDone)) if state == "Searching" else "Not started yet!"}")
+            timeToWaitIndicator.configure(text=f"Current wait time: {startTextVariable.get() if state == "countingDown" else "Not started yet!"}")
+            return
         root.after(int(loadTextVariable.get()) * 1000, close_tab, current, total)
-        
     else:
+        state = "idle"
         startButton.configure(state="normal")
         searches.configure(state="normal")
         timeToWaitBeforeStart.configure(state="normal")
         timeToLoadSiteInput.configure(state="normal")
         customStartPoint.configure(state="normal")
-        ctkmsg.showinfo("Finished", "All searches have been completed!")
-        searchesLeftIndicator.configure(text=f"Searches left: {searchesTextVariable.get() - searchesDone if state == "Searching" else "Not started yet!"}")
+        startButton.configure(text="START")
+        searchesLeftIndicator.configure(text=f"Searches left: {str(int(searchesTextVariable.get()) - int(searchesDone)) if state == "Searching" else "Not started yet!"}")
         timeToWaitIndicator.configure(text=f"Current wait time: {startTextVariable.get() if state == "countingDown" else "Not started yet!"}")
+        ctkmsg.CTkMessagebox(message="Searches finished!", icon="check")
 
 
 def close_tab(current, total):
@@ -179,6 +196,8 @@ def close_tab(current, total):
 
 
 def start():
+    global state
+    state = "countingDown"
     startButton.configure(state="disabled")
     searches.configure(state="disabled")
     timeToWaitBeforeStart.configure(state="disabled")
@@ -188,13 +207,15 @@ def start():
     countdown(wait_time)
 
 def countdown(remaining_time):
+    global state
     if remaining_time > 0:
         timeToWaitIndicator.configure(text=f"Current wait time: {remaining_time}")
         root.after(1000, countdown, remaining_time - 1)
     else:
         timeToWaitIndicator.configure(text="Finished counting down, searching started!")
+        state = "Searching"
+        startButton.configure(text="HOLD SPACE TO STOP")   
         perform_search(0, int(searchesTextVariable.get()))
-
 
 startButton.configure(command=start)
 
