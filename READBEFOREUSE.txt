@@ -1,0 +1,2 @@
+- Don't touch the config.json file or app may break 
+- Hold down space to force stop the app
